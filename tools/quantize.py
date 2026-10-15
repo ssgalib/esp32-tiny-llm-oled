@@ -104,8 +104,9 @@ def rmsnorm(x, weight):
     return weight * (x / np.sqrt(np.mean(x * x) + 1e-5))
 
 
-def greedy(cfg, w, steps):
-    """Same math as run.c's forward(), always taking the most likely token. Starts from BOS."""
+def greedy(cfg, w, steps, pick=None):
+    """Same math as run.c's forward(). Starts from BOS; pick(logits, pos) chooses the next
+    token (default: the most likely one)."""
     dim, L = cfg["dim"], cfg["n_layers"]
     heads, kv_heads = cfg["n_heads"], cfg["n_kv_heads"]
     hs = dim // heads
@@ -139,7 +140,7 @@ def greedy(cfg, w, steps):
             x = x + w["w2"][l] @ (h1 / (1 + np.exp(-h1)) * (w["w3"][l] @ xb))
         logits = w["emb"] @ rmsnorm(x, w["rms_final"])
         all_logits.append(logits)
-        nxt = int(np.argmax(logits))
+        nxt = int(np.argmax(logits)) if pick is None else pick(logits, pos)
         if nxt == 1:
             break
         out.append((token, nxt))
